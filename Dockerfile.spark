@@ -1,0 +1,17 @@
+FROM apache/spark:3.5.1
+
+WORKDIR /app
+
+# Switch to root to install packages
+USER root
+
+# Install Python dependencies
+COPY requirements.spark.txt .
+RUN pip install -r requirements.spark.txt
+
+COPY . .
+
+CMD ["spark-submit", \
+     "--master", "spark://spark-master:7077", \
+     "--packages", "org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.1,mysql:mysql-connector-java:8.0.33", \
+     "src/spark/spark_job.py"]

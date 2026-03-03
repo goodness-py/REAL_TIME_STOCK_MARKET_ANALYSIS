@@ -1,8 +1,4 @@
-pandas
 requests
 python-dotenv
-kafka-python
-pyspark
 mysql-connector-python
-sqlalchemy
-numpy
+kafka-python

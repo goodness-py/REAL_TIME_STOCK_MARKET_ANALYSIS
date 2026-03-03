@@ -1,0 +1,139 @@
+services:
+  # -------------------- PRODUCER --------------------
+  app:
+    build: .
+    env_file:
+      - .env
+    depends_on:
+      - kafka
+    networks:
+      - stock_data
+
+  # -------------------- DATABASE --------------------
+  db:
+    image: mysql:8.0
+    container_name: mysql_db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: Anya@3683
+      MYSQL_DATABASE: stock_db
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - stock_data
+
+  # -------------------- KAFKA --------------------
+  kafka:
+    image: confluentinc/cp-kafka:7.4.10
+    container_name: kafka
+    hostname: kafka
+    ports:
+      - "9092:9092"
+      - "9094:9094"
+    environment:
+      KAFKA_KRAFT_MODE: "true"
+      KAFKA_PROCESS_ROLES: controller,broker
+      KAFKA_NODE_ID: 1
+      KAFKA_CONTROLLER_QUORUM_VOTERS: "1@kafka:9093"
+      KAFKA_LISTENERS: PLAINTEXT_INTERNAL://kafka:9092,PLAINTEXT_EXTERNAL://0.0.0.0:9094,CONTROLLER://0.0.0.0:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT_INTERNAL:PLAINTEXT,PLAINTEXT_EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT_INTERNAL
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT_INTERNAL://kafka:9092,PLAINTEXT_EXTERNAL://localhost:9094
+      KAFKA_LOG_DIRS: /var/lib/kafka/data
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_LOG_RETENTION_HOURS: 168
+      KAFKA_GROUP_INITIAL_REBALANCE_DELAY_MS: 0
+      CLUSTER_ID: "MkU3OEVBNTcwNTJENDM2Qk"
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - stock_data
+
+  # -------------------- KAFKA UI --------------------
+  kafka-ui:
+    image: provectuslabs/kafka-ui:v0.7.2
+    container_name: kafka-ui
+    ports:
+      - "8085:8080"
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      DYNAMIC_CONFIG_ENABLED: "true"
+    networks:
+      - stock_data
+
+  # -------------------- SPARK MASTER --------------------
+  spark-master:
+    image: apache/spark:3.5.1
+    container_name: spark-master
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.master.Master", "--host", "spark-master", "--port", "7077", "--webui-port", "8080"]
+    environment:
+      - SPARK_MODE=master
+      - SPARK_MASTER_HOST=spark-master
+    ports:
+      - "8081:8080"
+      - "7077:7077"
+    volumes:
+      - spark_data:/opt/spark/data
+      - ./src:/src
+    networks:
+      - stock_data
+
+  # -------------------- SPARK WORKER --------------------
+  spark-worker:
+    image: apache/spark:3.5.1
+    container_name: spark-worker
+    command: ["/opt/spark/bin/spark-class", "org.apache.spark.deploy.worker.Worker", "spark://spark-master:7077", "--webui-port", "8081"]
+    environment:
+      - SPARK_MODE=worker
+      - SPARK_MASTER_URL=spark://spark-master:7077
+      - SPARK_WORKER_CORES=2
+      - SPARK_WORKER_MEMORY=2G
+    depends_on:
+      - spark-master
+    volumes:
+      - spark_data:/opt/spark/data
+      - ./src:/src
+    networks:
+      - stock_data
+
+  # -------------------- SPARK JOB --------------------
+  spark-job:
+    build:
+      context: .
+      dockerfile: Dockerfile.spark
+    container_name: spark-job
+    depends_on:
+      - spark-master
+      - spark-worker
+      - kafka
+      - db
+    networks:
+      - stock_data
+
+    # -------------------- METABASE --------------------
+  metabase:
+    image: metabase/metabase:v0.48.0
+    container_name: metabase
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - db
+    networks:
+      - stock_data
+
+# -------------------- VOLUMES & NETWORKS --------------------
+volumes:
+  mysql_data:
+  kafka_data:
+  spark_data:
+
+networks:
+  stock_data:
