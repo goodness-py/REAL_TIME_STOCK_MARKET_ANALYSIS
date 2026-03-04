@@ -1,12 +1,44 @@
 # Real-Time Stock Market Analysis Pipeline
 
+## Business Context
+
+**MarketPulse Analytics** is a leading financial technology firm based in New York City, specializing in real-time market insights for institutional investors. Founded in 2016, MarketPulse provides actionable financial data to hedge funds, asset managers, and electronic brokers across multiple global exchanges.
+
+### The Problem
+
+As data volume and client demand increased, MarketPulse faced three critical pain points:
+
+| Pain Point | Impact |
+|---|---|
+| **Data Latency** | Delays in integrating data from multiple sources affected accuracy of insights — even a 1 second delay could result in significant financial losses for clients |
+| **Scalability** | Existing infrastructure struggled during peak periods (market opens, earnings reports), causing performance bottlenecks |
+| **System Reliability** | Lack of robust monitoring made it impossible to detect anomalies in real-time, leading to compliance risks |
+
+### The Solution
+
+This project builds a **scalable, real-time data pipeline** that:
+- Streams stock market data with low latency through Apache Kafka
+- Processes data in real-time using Apache Spark
+- Stores raw and processed data in MySQL
+- Delivers actionable insights via interactive Metabase dashboards
+
+### Business Impact
+
+- ⚡ **Faster Decision-Making** — clients can act on financial data instantly
+- 📈 **Improved Client Trust** — real-time, transparent data reporting
+- 🏆 **Market Leadership** — positions MarketPulse as a leader in high-frequency trading analytics
+
+---
+
+## Project Overview
+
 A real-time data pipeline that extracts live stock data from the Alpha Vantage API, streams it through Apache Kafka, processes it with Apache Spark, stores it in MySQL, and visualizes it with Metabase.
 
 All components are containerized with Docker for easy deployment.
 
 ---
 
-## Data Pipeline Architecture
+## Architecture
 
 ![Architecture Diagram](img/image.png)
 
@@ -26,7 +58,6 @@ All components are containerized with Docker for easy deployment.
 ---
 
 ## Project Structure
-
 ```
 REAL_TIME_STOCK_MARKET_ANALYSIS/
 ├── src/
