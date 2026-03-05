@@ -132,8 +132,8 @@ REAL_TIME_STOCK_MARKET_ANALYSIS/
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/real-time-stock-market-analysis.git
-cd real-time-stock-market-analysis
+git clone https://github.com/goodness-py/REAL_TIME_STOCK_MARKET_ANALYSIS.git
+cd REAL_TIME_STOCK_MARKET_ANALYSIS
 ```
 
 2. Create a `.env` file in the root directory:
@@ -186,6 +186,78 @@ docker compose up --build
 - Switch to continuous streaming (currently runs once per execution)
 - Add more stock symbols
 - Implement price spike alerts
-- Add Spark Master/Worker UI monitoring
 - Migrate to PostgreSQL
 - Deploy to cloud (AWS/GCP)
+- Implement Star Schema data model
+
+---
+
+## Proposed Star Schema
+
+The current schema uses 2 flat tables. A production-grade implementation would use a **Star Schema** for better performance, scalability and querying.
+
+### Schema Diagram
+```
+                 dim_stock
+                 (TSLA, MSFT, GOOGL)
+                      │
+                      │ symbol
+                      │
+dim_date ─── date_id ─┼─── fact_stock_prices ─── time_id ─── dim_time
+(dates)               │         (prices)                       (times)
+                      │
+                      │ symbol
+                      │
+                 fact_stock_analytics
+                    (averages)
+```
+
+### `dim_stock` — Stock Dimension
+| Column | Type | Description |
+|---|---|---|
+| symbol | VARCHAR(10) | Primary Key |
+| company_name | VARCHAR(100) | Full company name |
+| sector | VARCHAR(50) | Industry sector |
+| exchange | VARCHAR(20) | Stock exchange |
+
+### `dim_date` — Date Dimension
+| Column | Type | Description |
+|---|---|---|
+| date_id | INT | Primary Key |
+| full_date | DATE | Full date |
+| year | INT | Year |
+| month | INT | Month |
+| day | INT | Day |
+| day_of_week | VARCHAR(10) | Monday, Tuesday etc |
+| is_weekend | BOOLEAN | True if weekend |
+
+### `dim_time` — Time Dimension
+| Column | Type | Description |
+|---|---|---|
+| time_id | INT | Primary Key |
+| full_time | TIME | Full time |
+| hour | INT | Hour |
+| minute | INT | Minute |
+| period | VARCHAR(5) | AM or PM |
+
+### `fact_stock_prices` — Fact Table
+| Column | Type | Description |
+|---|---|---|
+| price_id | INT | Primary Key |
+| symbol | VARCHAR(10) | Foreign Key → dim_stock |
+| date_id | INT | Foreign Key → dim_date |
+| time_id | INT | Foreign Key → dim_time |
+| open | FLOAT | Opening price |
+| high | FLOAT | Highest price |
+| low | FLOAT | Lowest price |
+| close | FLOAT | Closing price |
+
+### Why Star Schema?
+
+| Current Schema | Star Schema |
+|---|---|
+| 2 flat tables | Organised dimensions and facts |
+| Repeated data | No repetition |
+| Hard to query by date | Easy to filter by year, month, day |
+| No company info | Full company details in dim_stock |
+| Slower on large data | Optimised for large datasets |
