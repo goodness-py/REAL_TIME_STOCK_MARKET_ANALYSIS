@@ -1,7 +1,11 @@
+Spark job · PY
+Copy
+
 import logging
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import from_json, col, avg, round
 from pyspark.sql.types import StructType, StructField, StringType, FloatType
+from data_quality import run_quality_checks
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -51,6 +55,15 @@ def process_batch(batch_df, batch_id):
     parsed_df = parsed_df.filter(col("symbol").isNotNull())
 
     logger.info(f"Parsed {parsed_df.count()} valid records")
+
+    # ── DATA QUALITY CHECKS ──────────────────────────────────────────────────
+    # Validate data BEFORE loading to MySQL (circuit breaker pattern)
+    quality_passed = run_quality_checks(parsed_df, batch_id)
+
+    if not quality_passed:
+        logger.error(f"Batch {batch_id} blocked from loading due to quality failures.")
+        return
+    # ─────────────────────────────────────────────────────────────────────────
 
     # Write raw records to stocks table
     parsed_df.write.jdbc(
